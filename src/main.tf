@@ -31,21 +31,21 @@ resource "azurerm_role_assignment" "spoke_readers_reader" {
 
 # Managed Identities for Pull, Push, Reader
 resource "azurerm_user_assigned_identity" "spoke_pull_mi" {
-  name                = "${var.spoke_name}-acrpull-mi"
-  resource_group_name = var.spoke_resource_group_name
-  location            = var.spoke_location
+  name                = "${var.mi_prefix}-acrpull-mi"
+  resource_group_name = var.mi_resource_group_name
+  location            = var.mi_location
 }
 
 resource "azurerm_user_assigned_identity" "spoke_push_mi" {
-  name                = "${var.spoke_name}-acrpush-mi"
-  resource_group_name = var.spoke_resource_group_name
-  location            = var.spoke_location
+  name                = "${var.mi_prefix}-acrpush-mi"
+  resource_group_name = var.mi_resource_group_name
+  location            = var.mi_location
 }
 
 resource "azurerm_user_assigned_identity" "spoke_reader_mi" {
-  name                = "${var.spoke_name}-acrreader-mi"
-  resource_group_name = var.spoke_resource_group_name
-  location            = var.spoke_location
+  name                = "${var.mi_prefix}-acrreader-mi"
+  resource_group_name = var.mi_resource_group_name
+  location            = var.mi_location
 }
 
 # Add Managed Identities to correct AD group

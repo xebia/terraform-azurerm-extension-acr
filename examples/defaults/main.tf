@@ -49,5 +49,4 @@ module "defaults" {
 
   # Acr access config
   acr_resource_id = azurerm_container_registry.this.id
-  acr_group_name  = "demospoke-acrpull"
 }

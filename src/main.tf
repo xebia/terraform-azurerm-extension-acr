@@ -59,27 +59,6 @@ resource "time_sleep" "wait_for_mi_propagation" {
   create_duration = "30s"
 }
 
-# Add Managed Identities to correct AD group
-resource "azuread_group_member" "pull_mi_member" {
-  depends_on = [time_sleep.wait_for_mi_propagation]
-  group_object_id = azuread_group.spoke_acrpull_group.object_id
-  member_object_id = azurerm_user_assigned_identity.spoke_pull_mi.principal_id
-}
-
-resource "azuread_group_member" "push_mi_member" {
-  depends_on = [time_sleep.wait_for_mi_propagation]
-  
-  group_object_id = var.owner_group_id
-  member_object_id = azurerm_user_assigned_identity.spoke_push_mi.principal_id
-}
-
-resource "azuread_group_member" "reader_mi_member" {
-  depends_on = [time_sleep.wait_for_mi_propagation]
-  
-  group_object_id = var.reader_group_id
-  member_object_id = azurerm_user_assigned_identity.spoke_reader_mi.principal_id
-}
-
 # Assign ACR roles to Managed Identities
 resource "azurerm_role_assignment" "pull_mi_acrpull" {
   scope                = var.acr_resource_id

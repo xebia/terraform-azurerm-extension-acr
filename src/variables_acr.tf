@@ -1,4 +1,9 @@
-variable "acr_resource_id" {
-  description = "The resource ID of the container registry to grant access to"
+variable "acr_pull_group_id" {
+  description = "The object ID of the ACR Pull group"
+  type        = string
+}
+
+variable "acr_push_group_id" {
+  description = "The object ID of the ACR Push group"
   type        = string
 }

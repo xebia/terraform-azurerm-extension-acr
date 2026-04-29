@@ -1,8 +1,16 @@
 data "azuread_client_config" "current" {}
 
+data "azuread_group" "acr_pull_main" {
+  object_id = var.acr_pull_group_object_id
+}
+
+data "azuread_group" "acr_push_main" {
+  object_id = var.acr_push_group_object_id
+}
+
 resource "azuread_group" "acr_pull" {
-  display_name     = "acr-pull-${var.spoke_name}"
-  description      = "Security group for AcrPull access for spoke ${var.spoke_name} on the shared Azure Container Registry"
+  display_name     = "${data.azuread_group.acr_pull_main.display_name}-${var.spoke_name}"
+  description      = "Spoke sub-group of ${data.azuread_group.acr_pull_main.display_name} for ${var.spoke_name}"
   security_enabled = true
   owners = [
     data.azuread_client_config.current.object_id,
@@ -17,8 +25,8 @@ resource "azuread_group" "acr_pull" {
 }
 
 resource "azuread_group" "acr_push" {
-  display_name     = "acr-push-${var.spoke_name}"
-  description      = "Security group for AcrPush access for spoke ${var.spoke_name} on the shared Azure Container Registry"
+  display_name     = "${data.azuread_group.acr_push_main.display_name}-${var.spoke_name}"
+  description      = "Spoke sub-group of ${data.azuread_group.acr_push_main.display_name} for ${var.spoke_name}"
   security_enabled = true
   owners = [
     data.azuread_client_config.current.object_id,
@@ -33,12 +41,12 @@ resource "azuread_group" "acr_push" {
 }
 
 resource "azuread_group_member" "acr_pull_sub_to_main" {
-  group_object_id  = var.acr_pull_group_object_id
+  group_object_id  = data.azuread_group.acr_pull_main.object_id
   member_object_id = azuread_group.acr_pull.object_id
 }
 
 resource "azuread_group_member" "acr_push_sub_to_main" {
-  group_object_id  = var.acr_push_group_object_id
+  group_object_id  = data.azuread_group.acr_push_main.object_id
   member_object_id = azuread_group.acr_push.object_id
 }
 

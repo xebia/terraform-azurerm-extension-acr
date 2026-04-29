@@ -10,6 +10,10 @@ resource "azuread_group" "acr_pull" {
   ]
 
   administrative_unit_ids = var.administrative_unit_id != null ? [var.administrative_unit_id] : null
+
+  lifecycle {
+    ignore_changes = [members]
+  }
 }
 
 resource "azuread_group" "acr_push" {
@@ -22,6 +26,10 @@ resource "azuread_group" "acr_push" {
   ]
 
   administrative_unit_ids = var.administrative_unit_id != null ? [var.administrative_unit_id] : null
+
+  lifecycle {
+    ignore_changes = [members]
+  }
 }
 
 resource "azuread_group_member" "acr_pull_sub_to_main" {

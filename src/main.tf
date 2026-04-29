@@ -1,22 +1,55 @@
-resource "azurerm_role_assignment" "spoke_contributors_acrpull" {
-  scope                = var.acr_resource_id
-  role_definition_name = "AcrPull"
-  principal_id         = var.contributor_group_id
+data "azuread_client_config" "current" {}
+
+data "azuread_group" "acr_pull_main" {
+  object_id = var.acr_pull_group_object_id
 }
 
-resource "azurerm_role_assignment" "spoke_owners_acrpush" {
-  scope                = var.acr_resource_id
-  role_definition_name = "AcrPush"
-  principal_id         = var.owner_group_id
+data "azuread_group" "acr_push_main" {
+  object_id = var.acr_push_group_object_id
 }
 
-resource "azurerm_role_assignment" "spoke_readers_reader" {
-  scope                = var.acr_resource_id
-  role_definition_name = "Reader"
-  principal_id         = var.reader_group_id
+resource "azuread_group" "acr_pull" {
+  display_name     = "${data.azuread_group.acr_pull_main.display_name}-${var.spoke_name}"
+  description      = "Spoke sub-group of ${data.azuread_group.acr_pull_main.display_name} for ${var.spoke_name}"
+  security_enabled = true
+  owners = [
+    data.azuread_client_config.current.object_id,
+    var.service_principal_object_id,
+  ]
+
+  administrative_unit_ids = var.administrative_unit_id != null ? [var.administrative_unit_id] : null
+
+  lifecycle {
+    ignore_changes = [members]
+  }
 }
 
-# Managed Identities for Pull, Push, Reader
+resource "azuread_group" "acr_push" {
+  display_name     = "${data.azuread_group.acr_push_main.display_name}-${var.spoke_name}"
+  description      = "Spoke sub-group of ${data.azuread_group.acr_push_main.display_name} for ${var.spoke_name}"
+  security_enabled = true
+  owners = [
+    data.azuread_client_config.current.object_id,
+    var.service_principal_object_id,
+  ]
+
+  administrative_unit_ids = var.administrative_unit_id != null ? [var.administrative_unit_id] : null
+
+  lifecycle {
+    ignore_changes = [members]
+  }
+}
+
+resource "azuread_group_member" "acr_pull_sub_to_main" {
+  group_object_id  = data.azuread_group.acr_pull_main.object_id
+  member_object_id = azuread_group.acr_pull.object_id
+}
+
+resource "azuread_group_member" "acr_push_sub_to_main" {
+  group_object_id  = data.azuread_group.acr_push_main.object_id
+  member_object_id = azuread_group.acr_push.object_id
+}
+
 resource "azurerm_user_assigned_identity" "spoke_pull_mi" {
   name                = "${var.mi_prefix}-acrpull-mi"
   resource_group_name = var.mi_resource_group_name
@@ -29,38 +62,23 @@ resource "azurerm_user_assigned_identity" "spoke_push_mi" {
   location            = var.mi_location
 }
 
-resource "azurerm_user_assigned_identity" "spoke_reader_mi" {
-  name                = "${var.mi_prefix}-acrreader-mi"
-  resource_group_name = var.mi_resource_group_name
-  location            = var.mi_location
-}
-
-# Wait for managed identities to propagate in Azure AD
 resource "time_sleep" "wait_for_mi_propagation" {
   depends_on = [
     azurerm_user_assigned_identity.spoke_pull_mi,
     azurerm_user_assigned_identity.spoke_push_mi,
-    azurerm_user_assigned_identity.spoke_reader_mi
   ]
 
   create_duration = "30s"
 }
 
-# Assign ACR roles to Managed Identities
-resource "azurerm_role_assignment" "pull_mi_acrpull" {
-  scope                = var.acr_resource_id
-  role_definition_name = "AcrPull"
-  principal_id         = azurerm_user_assigned_identity.spoke_pull_mi.principal_id
+resource "azuread_group_member" "pull_mi_to_acr_pull" {
+  depends_on       = [time_sleep.wait_for_mi_propagation]
+  group_object_id  = azuread_group.acr_pull.object_id
+  member_object_id = azurerm_user_assigned_identity.spoke_pull_mi.principal_id
 }
 
-resource "azurerm_role_assignment" "push_mi_acrpush" {
-  scope                = var.acr_resource_id
-  role_definition_name = "AcrPush"
-  principal_id         = azurerm_user_assigned_identity.spoke_push_mi.principal_id
-}
-
-resource "azurerm_role_assignment" "reader_mi_reader" {
-  scope                = var.acr_resource_id
-  role_definition_name = "Reader"
-  principal_id         = azurerm_user_assigned_identity.spoke_reader_mi.principal_id
+resource "azuread_group_member" "push_mi_to_acr_push" {
+  depends_on       = [time_sleep.wait_for_mi_propagation]
+  group_object_id  = azuread_group.acr_push.object_id
+  member_object_id = azurerm_user_assigned_identity.spoke_push_mi.principal_id
 }
